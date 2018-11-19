@@ -2,8 +2,14 @@
 import time
 import random
 from blockchain import BlockChain
-from web3 import personal
 import string
+import re
+
+from datetime import datetime, date, time
+import sqlite3
+import time as time
+import networkx as nx
+import matplotlib.pyplot as plt
 
 contract_source_code = '''
 pragma solidity ^0.4.18;
@@ -40,7 +46,30 @@ pragma solidity ^0.4.18;
 '''
 
 block = BlockChain("http://127.0.0.1:8545", contract_source_code)
+
 block.DeployContract()
+
+# Nitin: Creating DB connection and creating the table each time this code is run.
+conn = sqlite3.connect('local.db', detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
+curr = conn.cursor()
+curr.execute("DROP TABLE transactions")
+curr.execute('''CREATE TABLE transactions
+          (trans_id TEXT PRIMARY KEY,
+          input_value TEXT,
+          task TEXT,
+          output_value TEXT,
+          account TEXT,
+          time_ TEXT,
+          transHash TEXT,
+          valid TEXT)''')
+
+#Nitin: API to search by output field in DB
+def searchByOutput_DB(output_param):
+    t = curr.execute("SELECT * FROM transactions WHERE output_value = ?", (output_param,)).fetchone()
+    return t
+
+returnResult = ""
+
 
 def calculate_time():
     iterations= int(sys.argv[1])
@@ -51,12 +80,11 @@ def generate_random(itr,max):
     start_time = time.time()
     for x in range (itr):
         i=random.randint(1,max+1)
-        tmp="tmp-"+str(i)+"-0" 
-        # tmp: random generated blockchain output that needs to be searched
-        # block.search_by_output_field(bytes(tmp,"utf-8")) 
-        print(block.search_by_field(bytes(tmp,"utf-8"))
-
-
+        tmp="tmp-"+str(i)+"-0" # tmp: random generated blockchain output that needs to be searched
+        # Wen: adding API here
+        print(block.search_by_output_field(bytes(tmp,"utf-8")))  #search in blockchain network
+        print(searchByOutput_DB('tmp')) #search in local database
+     
     stop_time=time.time()
 
     average_time= (stop_time-start_time)/itr
@@ -67,15 +95,3 @@ def generate_random(itr,max):
 if __name__ =="__main__":
     calculate_time()
 
-
-#def search_by_output_field(self, output_field):
-
-        #contract_interface = self.compiled_sol['<stdin>:Record']
-
-        #Record = self.w3.eth.contract(
-            #address=self.contract_address,
-            #abi=contract_interface['abi'],
-        #)
-
-        #filt = Record.events.TaskIno.createFilter(fromBlock=0, argument_filters={'output' : output_field})
-        #return filt.get_all_entries()
